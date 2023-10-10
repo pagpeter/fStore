@@ -1,0 +1,6 @@
+github.com/aviate-labs/leb128 v0.3.0 h1:s9htRv3OYk8nuHqJu9PiVFJxv1jIUTIcpEeiURa91uQ=
+github.com/aviate-labs/leb128 v0.3.0/go.mod h1:GclhBOjhIKmcDlgHKhj0AEZollzERfZUbcRUKiQVqgY=
+github.com/go-delve/delve v1.21.1 h1:oDpED8gvXPLS1VKSYzaMH/ihZtyk04H9jqQ9xpyFXl0=
+github.com/go-delve/delve v1.21.1/go.mod h1:FgTAiRUe43RS5EexL06RPyMtP8AMZVL/t9Qqgy3qUe4=
+golang.org/x/exp v0.0.0-20231006140011-7918f672742d h1:jtJma62tbqLibJ5sFQz8bKtEM8rJBtfilJ2qTU199MI=
+golang.org/x/exp v0.0.0-20231006140011-7918f672742d/go.mod h1:ldy0pHrwJyGW56pPQzzkH36rKxoZW1tw7ZJpeKx+hdo=
