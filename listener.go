@@ -37,8 +37,8 @@ func (s *StoreListener) EnableDebug() {
 
 func (s *StoreListener) getStructValue(ref reflect.Value) any {
 	fields := ref.NumField()
-	result := map[string]any{}
 
+	result := map[string]any{}
 	for i := 0; i < fields; i++ {
 		field := ref.Field(i)
 		jsonTag := ref.Type().Field(i).Tag.Get("json")
@@ -58,7 +58,30 @@ func (s *StoreListener) getStructValue(ref reflect.Value) any {
 	return result
 }
 
+func (s *StoreListener) getMapValue(ref reflect.Value) any {
+	fields := ref.MapKeys()
+
+	result := map[string]any{}
+	for _, fieldName := range fields {
+		field := ref.MapIndex(fieldName)
+		s.log("tmp:", field, field.Elem(), field.Type())
+		name := fieldName.String()
+		s.log(name)
+		val := s.getFieldValue(field, name)
+		if !isEmpty(val) {
+			n := name
+			if s.UseKeyCompression {
+				n = s.database.SaveKey(name)
+			}
+			result[n] = val
+		}
+	}
+
+	return result
+}
+
 func (s *StoreListener) getFieldValue(field reflect.Value, name string) any {
+
 	if field.Kind() == reflect.String {
 		str := field.String()
 		if len(str) < s.Threshhold && !slices.Contains(s.DontHash, name) {
@@ -66,25 +89,35 @@ func (s *StoreListener) getFieldValue(field reflect.Value, name string) any {
 		}
 		// s.log("=== hashing", name, "===")
 		return s.database.SaveHash(str)
-	}
-
-	if field.Kind() == reflect.Struct {
+	} else if field.Kind() == reflect.Float64 {
+		i := field.Float()
+		if !slices.Contains(s.DontHash, name) {
+			return i
+		}
+		return s.database.SaveHash(fmt.Sprintf("%v", i))
+	} else if field.Kind() == reflect.Int64 {
+		i := field.Int()
+		if !slices.Contains(s.DontHash, name) {
+			return i
+		}
+		return s.database.SaveHash(fmt.Sprintf("%v", i))
+	} else if field.Kind() == reflect.Struct {
 		return s.getStructValue(field)
-	}
-
-	if field.Kind() == reflect.Slice {
+	} else if field.Kind() == reflect.Slice {
 		result := []any{}
 		for i := 0; i < field.Len(); i++ {
 			result = append(result, s.getFieldValue(field.Index(i), ""))
 		}
 		return result
-	}
-
-	if field.Kind() == reflect.Int {
+	} else if field.Kind() == reflect.Int {
 		return field.Int()
+	} else if field.Kind() == reflect.Map {
+		return s.getMapValue(field)
+	} else if field.Kind() == reflect.Interface {
+		return s.getFieldValue(reflect.ValueOf(field.Interface()), "")
 	}
 
-	s.log("== UNHANDLED", field.Kind())
+	s.log("== UNHANDLED", field.Kind(), field.Interface())
 	return field.Interface()
 }
 
@@ -108,10 +141,12 @@ func (s *StoreListener) storeArray(data []any) (any, error) {
 func (s *StoreListener) Store(data any) (any, error) {
 	reflectVal := reflect.ValueOf(data)
 	reflectKind := reflectVal.Kind()
-
+	s.log("Type: ", reflectKind)
 	switch reflectKind {
 	case reflect.Struct:
 		return s.storeStruct(reflectVal.Interface())
+	case reflect.Map:
+		return s.getMapValue(reflectVal), nil
 	case reflect.Array:
 		return s.storeArray(data.([]any))
 	case reflect.Pointer:
